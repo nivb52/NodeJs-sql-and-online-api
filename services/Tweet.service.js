@@ -12,7 +12,7 @@ const emitter = new EventEmitter();
 
 // INIT Queue :
 const tweetQ = createQueue();
-const isDeQing = (state = true) => state;
+const isDequeueRunning = (state = true) => state;
 // let testQ = true; // for test the queue
 _handleQueue();
 
@@ -20,7 +20,7 @@ _handleQueue();
 // ==========================
 function saveAndPublish(tweet) {
   tweet.createdAt = Date.now();
-  logger('on save and publish')
+  logger('on save and publish');
 
   // const { error, value } = schema.validate(tweet);
   // if (error) throw Error('schema error', error);
@@ -30,26 +30,32 @@ function saveAndPublish(tweet) {
   // INSERT TO TABLE
   TweetModel.create(tweet)
     .then(tweet => {
-      toPublish(tweet.dataValues.comment);
-      emitter.emit('success');
+      try {
+        toPublish(tweet.dataValues.comment);
+      } catch (e) {
+        emitter.emit('error');
+      }
     })
     .catch(e => {
       logger('==== ERROR: ====', e);
       emitter.emit('error');
     });
+  emitter.emit('success');
 }
 
 function toPublish(status) {
   bot.post('statuses/update', { status }, function(err, data, res) {
     if (err) {
-      if (!isDeQing()) {
-        logger('\nisDequeuing On: ', isDeQing());
+      if (err.code === 187) {
+        emitter.emit('error', err);
+        return;
+      }
+      if (!isDequeueRunning()) {
+        logger('\nisDequeuing On: ', isDequeueRunning());
+        // make dequeue-ing proccess run if stoped
         _handleQueue();
       }
-      // if (err && err.code === 187) return new Error({ ...err });
       tweetQ.enqueue({ status, type: 'toPublish' });
-      // make queue run if stoped
-      logger(err);
       // testQ = false; //for test the queue
     } else {
       logger('==> ', data.text, '\n tweeted');
@@ -62,7 +68,6 @@ Tweet.saveAndPublish = saveAndPublish;
 Tweet.emitter = emitter;
 
 module.exports = Tweet;
-
 
 // =======================
 // PRIVATE Fuctions / Methods
@@ -78,10 +83,10 @@ function _handleQueue() {
       _reducer(action);
     }, 1000);
   }
-  isDeQing(false);
+  isDequeueRunning(false);
 }
 
-// Initiate funcion from queue : 
+// Initiate funcion from queue :
 function _reducer(action) {
   switch (action.type) {
     case 'toPublish':
