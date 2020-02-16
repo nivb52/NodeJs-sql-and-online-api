@@ -12,6 +12,7 @@
     "morgan": "^1.9.1",
     "mysql2": "^2.1.0",
     "sequelize": "^5.21.4",
+    "twit": "^2.2.11"
   },
   "devDependencies": {
     "nodemon": "^2.0.2"
