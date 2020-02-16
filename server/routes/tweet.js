@@ -1,40 +1,33 @@
-const express = require("express");
+const express = require('express');
 const router = new express.Router();
+const logger = (...txt) => console.log(...txt);
 
-//DB
-const models = require("../../models");
-// const db = require("../../db/connect");
-const db = models.db;
-const Tweet = models.Tweet;
-
-router.get("/", (req, res) => {
-  const all = Tweet.findAll()
-    .then(tweet => {
-      console.log(tweet);
-    })
-    .catch(e => console.log("Error:", e));
-  console.log(all);
-
-  res.send("INDEX");
+const TweetService = require('../../services/Tweet.service.js');
+router.get('/', (req, res) => {
+  // const all = TweetModel.findAll()
+  //   .then(tweet => {
+  //     logger("retrived tweet\n\n======");
+  //   })
+  //   .catch(e => logger("Error:", e));
+  res.send('INDEX');
 });
 
-router.get("/add", (req, res) => {
-  const data = {
-    comment: "Use your VOTE",
-    author: "YAEL",
-    updatedAt: null
-  };
-  // INSERT TO TABLE
-  Tweet.create({
-    comment: data.comment,
-    author: data.author,
-    updatedAt: data.updatedAt
-  })
-    .then(tweet => {
-      console.log("======\n ", tweet, "======\n ");
-      res.redirect("/");
-    })
-    .catch(e => console.log("==== ERROR: ====", e));
+router.get('/tweet', (req, res) => {
+  // let { comment, author, account } = req.query;
+  const comment = 'Hello World'
+  const author = ' '
+  const tweet_account = ' ' // tweet_account
+
+  TweetService.saveAndPublish({ comment, author, tweet_account });
+  Tweet.emitter.on('success', () => {
+    logger('success emmited')
+    res.redirect('/');
+  });
+  Tweet.emitter.on('error', (err) => {
+    // 187 = Status is a duplicate
+    if (err.code === 187) res.send(e.message);
+    else res.send('Whoops! something went wrong');
+  });
 });
 
 module.exports = router;
