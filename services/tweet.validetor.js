@@ -1,5 +1,4 @@
 const Joi = require("@hapi/joi");
-const bools = ["TRUE", "true", "FALSE", "false"];
 const logger = (...txt) => console.log(...txt);
 
 // Schema:

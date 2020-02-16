@@ -20,27 +20,28 @@ _handleQueue();
 // ==========================
 function saveAndPublish(tweet) {
   tweet.createdAt = Date.now();
-  logger('on save and publish');
+  
+  const { error, value } = schema.validate(tweet);
+  if (error) return emitter.emit('error', error); 
 
-  // const { error, value } = schema.validate(tweet);
-  // if (error) throw Error('schema error', error);
-
-  logger('going to DB', tweet);
-  // return;
+  logger('value', value);
+  
+  return emitter.emit('success');
   // INSERT TO TABLE
-  TweetModel.create(tweet)
+  TweetModel.create(value)
     .then(tweet => {
       try {
         toPublish(tweet.dataValues.comment);
+        emitter.emit('success');
       } catch (e) {
         emitter.emit('error');
       }
     })
     .catch(e => {
-      logger('==== ERROR: ====', e);
+      // logger('==== ERROR: ====', e);
       emitter.emit('error');
     });
-  emitter.emit('success');
+    emitter.emit('success');
 }
 
 function toPublish(status) {
