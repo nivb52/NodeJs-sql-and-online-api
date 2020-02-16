@@ -25,6 +25,8 @@ app.use(express.static(path.join(__dirname, 'web', 'public')));
 // ================ //
 // ROUTES //
 // ================ //
+
+
 app.use('/', require('./routes/tweet'));
 
 app.use('/error', require('./routes/error'));
@@ -44,20 +46,20 @@ app.use((req, res, next) => {
 });
 
 
-// catch 404 and forward to error handler
-app.use((req, res, next) => {
-  next(createError(404));
-});
+// // catch 404 and forward to error handler
+// app.use((req, res, next) => {
+//   next(res.send(createError(404)));
+// });
 
 
-// other errors handler
-app.use((err, req, res, next) => {
-  // set locals, only providing error in development
-  req.app.get('env') === 'development' ? err : {};
-  logger(err)  
-  // render empty error page
-  res.status(err.status || 500);
-});
+// // other errors handler
+// app.use((err, req, res, next) => {
+//   // set locals, only providing error in development
+//   req.app.get('env') === 'development' ? err : {};
+//   if (err.statusCode > 404) logger(err)  
+//   // render empty error page
+//   res.status(err.status || 500);
+// });
 
 
 module.exports = app;
