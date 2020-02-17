@@ -1,0 +1,27 @@
+{
+    "use_env_variable": "DB",
+    "development": {
+        "database": "database_development",
+        "username": "root",
+        "password": "",
+        "host": "127.0.0.1",
+        "dialect": "mysql",
+        "operatorsAliases": false
+    },
+    "test": {
+        "database": "database_test",
+        "username": "root",
+        "password": null,
+        "host": "127.0.0.1",
+        "dialect": "mysql",
+        "operatorsAliases": false
+    },
+    "production": {
+        "database": "database_production",
+        "username": "root",
+        "password": "",
+        "host": "127.0.0.1",
+        "dialect": "mysql",
+        "operatorsAliases": false
+    }
+}
