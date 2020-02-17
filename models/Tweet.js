@@ -25,7 +25,12 @@ module.exports = function(Sequelize, DataTypes) {
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true
-    }
+    },
+    isPending: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
+    },
   });
 
   return Tweet;
