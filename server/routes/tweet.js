@@ -49,9 +49,22 @@ router.get('/published', async (req, res) => {
 // PUBLISH TWEET //
 router.get('/t', async (req, res) => {
   let { comment, author, tweet_account } = req.query;
-  Tweet.saveAndPublish({ comment, author, tweet_account });
-  Tweet.emitter.once('success', () => {
-    return res.status(200, 'SENT');
+  Tweet.validation({ comment, author, tweet_account });
+
+  // INSERT TO TABLE
+  Tweet.Model.create(value)
+    .then(tweet => {
+      try {
+        Tweet.post({ comment: tweet.dataValues.comment, commentId: tweet.id });
+        return res.status(200, 'SENT');
+      } catch (e) {
+        next('error');
+      }
+    })
+    .catch(e => {
+      // logger('==== ERROR: ====', e);
+      next('error');
+    });
   });
 
   Tweet.emitter.on('error', err => {

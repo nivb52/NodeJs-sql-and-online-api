@@ -22,29 +22,14 @@ const POST_TWEET = 'postTweet';
 
 // TWEET FUNCTIONS / METHODS :
 // ==========================
-async function saveAndPublish(tweet) {
+async function validation(tweet) {
   tweet.isPending = 1; // default -> true
   tweet.createdAt = Date.now();
 
   const { error, value } = schema.validate(tweet);
   if (error) return emitter.emit('error', error);
 
-  logger('value', value);
-
-  // INSERT TO TABLE
-  Model.create(value)
-    .then(tweet => {
-      try {
-        postTweet({ comment: tweet.dataValues.comment, commentId: tweet.id });
-      } catch (e) {
-        emitter.emit('error');
-      }
-    })
-    .catch(e => {
-      // logger('==== ERROR: ====', e);
-      emitter.emit('error');
-    });
-  emitter.emit('success');
+  logger('Tweet.service 32: fn() saveAndPublish \n value:', value);
 }
 
 async function postTweet({ comment, commentId }) {
@@ -70,13 +55,9 @@ async function postTweet({ comment, commentId }) {
 async function updatePending(tweetId) {
   try {
     const tweet = await Model.update(
-      {
-        isPending: 0
-      },
-      {
-        where: {
-          id: tweetId
-        }
+      { isPending: 0  },
+      { where: {
+          id: tweetId  }
       }
     );
   } catch (e) {
@@ -87,11 +68,11 @@ async function updatePending(tweetId) {
   return tweet;
 }
 
-
 const Tweet = {};
-Tweet.emitter = emitter;
-Tweet.saveAndPublish = saveAndPublish;
 Tweet.Model = Model;
+Tweet.post = postTweet;
+Tweet.validation = validation;
+Tweet.emitter = emitter;
 
 module.exports = Tweet;
 
