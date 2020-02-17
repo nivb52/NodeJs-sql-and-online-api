@@ -86,14 +86,6 @@ async function _updatePending(tweetId) {
   return tweet;
 }
 
-const Tweet = {};
-Tweet.Model = Model;
-Tweet.post = postTweet;
-Tweet.validation = validation;
-Tweet.emitter = emitter;
-
-module.exports = Tweet;
-
 // =======================
 // PRIVATE Fuctions / Methods
 // =======================
