@@ -6,13 +6,12 @@ const express = require('express');
 const router = new express.Router();
 const createError = require('http-errors');
 
-
 router.get('/', (req, res) => {
   res.status(200).send('INDEX');
 });
 
 // PUBLISH TWEET //
-router.get('/t', async (req, res) => {
+router.post('/t', async (req, res) => {
   const { comment, author, tweet_account } = req.query;
   const checkTweet = { comment, author, tweet_account };
 
@@ -20,20 +19,29 @@ router.get('/t', async (req, res) => {
 
   if (error) {
     const msg = encodeURIComponent(error.message.substring(5));
-    res.status().redirect('/error?e=' + msg);
+    res.status(200).redirect('/error?e=' + msg);
     return;
   }
+  // define to get twit errors
   let msg = 'SENT';
+  let resStatus = 200;
   // INSERT TO TABLE
-  Tweet.Model.create(value)
+  await Tweet.Model.create(value)
     .then(tweet => {
       Tweet.post({ comment: tweet.dataValues.comment, commentId: tweet.id });
+      // show Tweet.post error if there is
+      if (tweet.status > 400 || tweet.code) {
+        msg = tweet.message;
+        resStatus = tweet.code ? tweet.status : 200;
+        res.status(resStatus).send(msg);
+      }
+      res.redirect('/thanks')
     })
     .catch(e => {
       logger('error: ', e);
       msg = 'posting problem, we will keep trying';
+      res.status(resStatus).send(msg);
     });
-  res.status(200).send(msg);
   return;
 });
 
@@ -77,18 +85,17 @@ router.get('/published', async (req, res) => {
 
 Tweet.emitter.on('error', err => {
   if (!err || !err.code) {
-    createError(('Check your connection'));
+    createError('Check your connection');
   } else if (err.code === 187) {
     // 187 => msg:  Status is a duplicate
     createError(err.message);
   } else {
     createError(defaultError);
   }
-}
-);
+});
 
 router.get('/thanks', (req, res) => {
-  res.send('Thanks');
+  res.status(200).send('Thanks');
 });
 
 module.exports = router;
