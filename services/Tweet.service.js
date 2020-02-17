@@ -1,8 +1,8 @@
-const logger = require('../services/logger')
-
+const logger = require('../services/logger');
 const bot = require('./tweetBot');
 const { createQueue } = require('./queue.js');
 const schema = require('./tweet.validetor');
+
 //DB
 const models = require('../models');
 const TweetModel = models.Tweet;
@@ -16,6 +16,9 @@ const tweetQ = createQueue();
 const isDequeueRunning = (state = true) => state;
 // let testQ = true; // for test the queue
 _handleQueue();
+
+// Queue / Reducer TYPES :
+const POST_TWEET = 'postTweet';
 
 // TWEET FUNCTIONS / METHODS :
 // ==========================
@@ -32,7 +35,7 @@ async function saveAndPublish(tweet) {
   TweetModel.create(value)
     .then(tweet => {
       try {
-        toPublish({status: tweet.dataValues.comment, statusId: tweet.id});
+        postTweet({ status: tweet.dataValues.comment, statusId: tweet.id });
       } catch (e) {
         emitter.emit('error');
       }
@@ -44,14 +47,14 @@ async function saveAndPublish(tweet) {
   emitter.emit('success');
 }
 
-async function toPublish({status, statusId}, onError, onCompleted) {
+async function postTweet({ status, statusId }) {
   bot.post('statuses/update', { status }, (err, data, res) => {
     if (err) {
       emitter.emit('error', err);
-      if (err.code === 187) return 
-      
-      tweetQ.enqueue({payload: {status, statusId} , type: 'toPublish' });
-      // make dequeue-ing proccess run if stoped
+      if (err.code === 187) return;
+
+      tweetQ.enqueue({ payload: { status, statusId }, type: POST_TWEET });
+      // start dequeue-ing proccess if stoped
       if (!isDequeueRunning()) {
         logger('\nisDequeuing On: ', isDequeueRunning());
         _handleQueue();
@@ -59,18 +62,30 @@ async function toPublish({status, statusId}, onError, onCompleted) {
       // testQ = false; //for test the queue
     } else {
       // ON PUBLISH -> UPDATE :
-      TweetModel.update({
-        isPending: 0
-      }, {
-        where: {
-          id : statusId
-        }
-      })
-      logger('==> ', data.text, '\n tweeted');
+      updatePending(statusId);
     }
   });
 }
 
+async function updatePending(tweetId) {
+  try {
+    const tweet = await TweetModel.update(
+      {
+        isPending: 0
+      },
+      {
+        where: {
+          id: tweetId
+        }
+      }
+    );
+  } catch (e) {
+    logger('error: ', e);
+    emitter.emit('error', err);
+  }
+  logger('==> ' + data.text + '\n tweeted');
+  return tweet;
+}
 const Tweet = {};
 Tweet.saveAndPublish = saveAndPublish;
 Tweet.emitter = emitter;
@@ -97,8 +112,8 @@ function _handleQueue() {
 // Initiate funcion from queue :
 function _reducer(action) {
   switch (action.type) {
-    case 'toPublish':
-      toPublish(action.payload);
+    case POST_TWEET:
+      postTweet(action.payload);
       break;
 
     default:
