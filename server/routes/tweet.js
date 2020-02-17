@@ -49,10 +49,10 @@ router.get('/published', async (req, res) => {
 // PUBLISH TWEET //
 router.get('/t', async (req, res) => {
   let { comment, author, tweet_account } = req.query;
-  Tweet.validation({ comment, author, tweet_account });
+  const tweet = Tweet.validation({ comment, author, tweet_account });
 
   // INSERT TO TABLE
-  Tweet.Model.create(value)
+  Tweet.Model.create(tweet)
     .then(tweet => {
       try {
         Tweet.post({ comment: tweet.dataValues.comment, commentId: tweet.id });
@@ -79,9 +79,8 @@ router.get('/t', async (req, res) => {
     } else {
       return res.redirect('/error?e=' + encodeURIComponent(defaultError));
     }
+    return res.end();
   });
-  return res.end();
-});
 
 router.get('/thanks', (req, res) => {
   res.send('Thanks');

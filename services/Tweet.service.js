@@ -28,7 +28,7 @@ async function validation(tweet) {
 
   const { error, value } = schema.validate(tweet);
   if (error) return emitter.emit('error', error);
-
+  return value;
   logger('Tweet.service 32: fn() saveAndPublish \n value:', value);
 }
 
@@ -55,9 +55,11 @@ async function postTweet({ comment, commentId }) {
 async function updatePending(tweetId) {
   try {
     const tweet = await Model.update(
-      { isPending: 0  },
-      { where: {
-          id: tweetId  }
+      { isPending: 0 },
+      {
+        where: {
+          id: tweetId
+        }
       }
     );
   } catch (e) {
