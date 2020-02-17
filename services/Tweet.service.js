@@ -5,7 +5,7 @@ const schema = require('./tweet.validetor');
 
 //DB
 const models = require('../models');
-const TweetModel = models.Tweet;
+const Model = models.Tweet;
 
 // INIT EMITS
 const EventEmitter = require('events').EventEmitter;
@@ -32,7 +32,7 @@ async function saveAndPublish(tweet) {
   logger('value', value);
 
   // INSERT TO TABLE
-  TweetModel.create(value)
+  Model.create(value)
     .then(tweet => {
       try {
         postTweet({ comment: tweet.dataValues.comment, commentId: tweet.id });
@@ -69,7 +69,7 @@ async function postTweet({ comment, commentId }) {
 
 async function updatePending(tweetId) {
   try {
-    const tweet = await TweetModel.update(
+    const tweet = await Model.update(
       {
         isPending: 0
       },
@@ -87,34 +87,11 @@ async function updatePending(tweetId) {
   return tweet;
 }
 
-async function getPending() {
-  try {
-    const pendingTweets = await TweetModel.find({
-      where: { isPending: 1 }
-    });
-  } catch (e) {
-    logger('Error:', e);
-  }
-  logger('retrived tweets\n\n======');
-  return pendingTweets;
-}
-
-function getPublished() {
-  TweetModel.find({
-    where: {isPending: 0}
-  })
-    .then(published => {
-      logger("retrived tweets\n\n======");
-      return published 
-    })
-    .catch(e => logger("Error:", e));
-}
 
 const Tweet = {};
-Tweet.saveAndPublish = saveAndPublish;
 Tweet.emitter = emitter;
-Tweet.getPending = getPending;
-Tweet.getPublished = getPublished;
+Tweet.saveAndPublish = saveAndPublish;
+Tweet.Model = Model;
 
 module.exports = Tweet;
 
