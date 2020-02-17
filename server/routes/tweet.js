@@ -1,39 +1,77 @@
+const logger = require('../../services/logger')
 const express = require('express');
 const router = new express.Router();
-const logger = (...txt) => console.log(...txt);
-
 const Tweet = require('../../services/Tweet.service.js');
-// const TweetEm = Tweet.emitter
+
 
 router.get('/', (req, res) => {
-  // const all = TweetModel.findAll()
+
+  res.send('INDEX');
+});
+
+
+router.get('/all', (req, res) => {
+  // const all = TweetModel.findAll({ offset: 0, limit: 15 })
   //   .then(tweet => {
   //     logger("retrived tweet\n\n======");
   //   })
   //   .catch(e => logger("Error:", e));
-  res.send('INDEX');
+  res.send('All tweets');
 });
 
-router.get('/tweet', (req, res) => {
-  // let { comment, author, account } = req.query;
-  const comment = 'Hello World';
-  const author = ' ';
-  const tweet_account = ' '; // tweet_account
 
+router.get('/pending', (req, res) => {
+  TweetModel.find({
+    where: {isPending: 1}
+  })
+    .then(pending => {
+      const tweets = pending 
+      logger("retrived tweets\n\n======");
+    })
+    .catch(e => logger("Error:", e));
+  res.send(tweets);
+});
+
+
+router.get('/published', (req, res) => {
+  TweetModel.find({
+    where: {isPending: 0}
+  })
+    .then(published => {
+      const tweets = published 
+      logger("retrived tweets\n\n======");
+    })
+    .catch(e => logger("Error:", e));
+  res.send(tweets);
+});
+
+// PUBLISH //
+router.get('/t', async (req, res) => {
+  let { comment, author, tweet_account } = req.query;
   Tweet.saveAndPublish({ comment, author, tweet_account });
-  Tweet.emitter.on('success', () => {
-    res.redirect('/');
+  Tweet.emitter.once('success', () => {
+    return res.status(200,'SENT')
   });
+
   Tweet.emitter.on('error', err => {
-    // 187 = Status is a duplicate
-    if (err.code === 187) {
-      res.redirect(200, '/error/?e=' + encodeURIComponent(err.message));
-    } else
-      res.redirect(
-        200,
-        '/error?e=' + encodeURIComponent('Whoops! something went wrong')
+    const defaultError = 'Whoops! something went wrong';
+    if (!err || !err.code) {
+      return res.redirect(
+        '/error/?e=' + encodeURIComponent('Check your connection')
       );
+    } else if (err.code === 187) {
+      // 187 = Status is a duplicate
+      return res.redirect('/error/?e=' + encodeURIComponent(err.message));
+    } else {
+      return res.redirect('/error?e=' + encodeURIComponent(defaultError));
+    }
   });
+  return res.end()
 });
+
+
+router.get('/thanks', (req, res) => {
+  res.send('Thanks');
+})
 
 module.exports = router;
