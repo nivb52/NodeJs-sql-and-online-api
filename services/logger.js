@@ -1,14 +1,20 @@
 require('dotenv').config();
 const env = process.env.NODE_ENV || 'development';
-const logLocal = true
+const logLocal = process.env.LOCAL_LOGGER || 'true';
 let logger;
 
-if ( logLocal &&(env === 'development' || env === 'dev' ) ){
+if (logLocal && (env === 'development' || env === 'dev')) {
   logger = (...txt) => console.log(...txt);
 } else {
-  logger = require('@sentry/node');
-  logger.init({ dsn: process.env.SENTRY_ID });
+  const Sentry = require('@sentry/node');
+  logger = Sentry.init({
+    dsn: process.env.SENTRY_ID,
+    maxBreadcrumbs: 30,
+    debug: true,
+    integrations: function(integrations) {
+      return integrations.concat(new Integrations.Dedupe());
+    }
+  });
 }
-
 
 module.exports = logger;
