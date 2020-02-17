@@ -11,7 +11,7 @@ const Model = models.Tweet;
 const EventEmitter = require('events').EventEmitter;
 const emitter = new EventEmitter();
 
-// INIT Queue (use this order):
+// INIT Queue :
 const tweetQ = createQueue();
 const isDequeueRunning = (state = true) => state;
 // let testQ = true; // for test the queue
@@ -49,7 +49,7 @@ async function postTweet({ comment, commentId }) {
       // testQ = false; //for test the queue
     } else {
       // ON PUBLISH -> UPDATE :
-      _updatePending(commentId);
+      updatePending(commentId);
     }
   });
 }
@@ -85,6 +85,18 @@ async function _updatePending(tweetId) {
   logger('==> ' + data.text + '\n tweeted');
   return tweet;
 }
+
+const Tweet = {};
+Tweet.Model = Model;
+Tweet.post = postTweet;
+Tweet.validation = validation;
+Tweet.emitter = emitter;
+
+module.exports = Tweet;
+
+// =======================
+// PRIVATE Fuctions / Methods
+// =======================
 
 function _handleQueue() {
   while (!tweetQ.isEmpty) {
