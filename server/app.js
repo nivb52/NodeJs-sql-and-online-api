@@ -1,5 +1,6 @@
 const express = require('express');
-const logger = (...txt) => console.log(...txt);
+const logger = require('../services/logger')
+
 const createError = require('http-errors');
 const path = require('path');
 const exphbs = require('express-handlebars');
@@ -10,12 +11,11 @@ const app = express();
 // app.use(logger('default','dev'));
 app.use(express.urlencoded({ extended: false }));
 
-// ================ //
+app.set('views', path.join(__dirname, 'web', 'views'));
+app.engine('handlebars', exphbs({ defaultLayout: 'main' }));
+
 // view engine setup
 // ================ //
-app.set('views', path.join(__dirname, 'web', 'views'));
-// Handlebars
-app.engine('handlebars', exphbs({ defaultLayout: 'main' }));
 app.set('view engine', 'handlebars');
 
 // Set static folder
@@ -47,9 +47,9 @@ app.use((req, res, next) => {
 
 
 // // catch 404 and forward to error handler
-// app.use((req, res, next) => {
-//   next(res.send(createError(404)));
-// });
+app.use((req, res, next) => {
+  next(res.send(createError(404)));
+});
 
 
 // // other errors handler
