@@ -35,7 +35,7 @@ async function saveAndPublish(tweet) {
   TweetModel.create(value)
     .then(tweet => {
       try {
-        postTweet({ status: tweet.dataValues.comment, statusId: tweet.id });
+        postTweet({ comment: tweet.dataValues.comment, commentId: tweet.id });
       } catch (e) {
         emitter.emit('error');
       }
@@ -47,13 +47,13 @@ async function saveAndPublish(tweet) {
   emitter.emit('success');
 }
 
-async function postTweet({ status, statusId }) {
-  bot.post('statuses/update', { status }, (err, data, res) => {
+async function postTweet({ comment, commentId }) {
+  bot.post('statuses/update', { comment }, (err, data, res) => {
     if (err) {
       emitter.emit('error', err);
       if (err.code === 187) return;
 
-      tweetQ.enqueue({ payload: { status, statusId }, type: POST_TWEET });
+      tweetQ.enqueue({ payload: { comment, commentId }, type: POST_TWEET });
       // start dequeue-ing proccess if stoped
       if (!isDequeueRunning()) {
         logger('\nisDequeuing On: ', isDequeueRunning());
@@ -62,7 +62,7 @@ async function postTweet({ status, statusId }) {
       // testQ = false; //for test the queue
     } else {
       // ON PUBLISH -> UPDATE :
-      updatePending(statusId);
+      updatePending(commentId);
     }
   });
 }
@@ -86,9 +86,35 @@ async function updatePending(tweetId) {
   logger('==> ' + data.text + '\n tweeted');
   return tweet;
 }
+
+async function getPending() {
+  try {
+    const pendingTweets = await TweetModel.find({
+      where: { isPending: 1 }
+    });
+  } catch (e) {
+    logger('Error:', e);
+  }
+  logger('retrived tweets\n\n======');
+  return pendingTweets;
+}
+
+function getPublished() {
+  TweetModel.find({
+    where: {isPending: 0}
+  })
+    .then(published => {
+      logger("retrived tweets\n\n======");
+      return published 
+    })
+    .catch(e => logger("Error:", e));
+}
+
 const Tweet = {};
 Tweet.saveAndPublish = saveAndPublish;
 Tweet.emitter = emitter;
+Tweet.getPending = getPending;
+Tweet.getPublished = getPublished;
 
 module.exports = Tweet;
 
@@ -99,10 +125,10 @@ module.exports = Tweet;
 function _handleQueue() {
   while (!tweetQ.isEmpty) {
     setTimeout(() => {
-      const { type, status } = tweetQ.dequeue();
+      const { type, comment } = tweetQ.dequeue();
       const action = {};
       action.type = type;
-      action.payload = status;
+      action.payload = comment;
       _reducer(action);
     }, 1000);
   }
