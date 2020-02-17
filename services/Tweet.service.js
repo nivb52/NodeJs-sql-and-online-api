@@ -11,7 +11,7 @@ const Model = models.Tweet;
 const EventEmitter = require('events').EventEmitter;
 const emitter = new EventEmitter();
 
-// INIT Queue (use this order):
+// INIT Queue :
 const tweetQ = createQueue();
 const isDequeueRunning = (state = true) => state;
 // let testQ = true; // for test the queue
@@ -20,17 +20,16 @@ _handleQueue();
 // Queue / Reducer TYPES :
 const POST_TWEET = 'postTweet';
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// ==========================
 // TWEET FUNCTIONS / METHODS :
 // ==========================
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 async function validation(tweet) {
   tweet.isPending = 1; // default -> true
   tweet.createdAt = Date.now();
+
   const { error, value } = schema.validate(tweet);
-  logger(' in Tweet.service saveAndPublish \n value:', value);
-  return { error, value };
+  if (error) return emitter.emit('error', error);
+  return value;
+  logger('Tweet.service 32: fn() saveAndPublish \n value:', value);
 }
 
 async function postTweet({ comment, commentId }) {
@@ -48,24 +47,12 @@ async function postTweet({ comment, commentId }) {
       // testQ = false; //for test the queue
     } else {
       // ON PUBLISH -> UPDATE :
-      _updatePending(commentId);
+      updatePending(commentId);
     }
   });
 }
 
-const Tweet = {};
-Tweet.Model = Model;
-Tweet.post = postTweet;
-Tweet.validation = validation;
-Tweet.emitter = emitter;
-
-module.exports = Tweet;
-
-// =======================
-// PRIVATE Fuctions / Methods
-// =======================
-
-async function _updatePending(tweetId) {
+async function updatePending(tweetId) {
   try {
     const tweet = await Model.update(
       { isPending: 0 },
@@ -82,6 +69,18 @@ async function _updatePending(tweetId) {
   logger('==> ' + data.text + '\n tweeted');
   return tweet;
 }
+
+const Tweet = {};
+Tweet.Model = Model;
+Tweet.post = postTweet;
+Tweet.validation = validation;
+Tweet.emitter = emitter;
+
+module.exports = Tweet;
+
+// =======================
+// PRIVATE Fuctions / Methods
+// =======================
 
 function _handleQueue() {
   while (!tweetQ.isEmpty) {
