@@ -1,15 +1,16 @@
-require("dotenv").config();
-const Sequelize = require("sequelize");
+require('dotenv').config();
+const Sequelize = require('sequelize');
+const logger  = require('../services/logger')
 
 const sequlize = new Sequelize(
   process.env.TABLE_NAME,
   process.env.DB_USERNAME,
   process.env.DB_PASSWORD,
-  { host: process.env.DB_HOST, dialect: "mysql" }
+  { host: process.env.DB_HOST, dialect: 'mysql' }
 );
 
 const models = {
-  Tweet: sequlize.import("./Tweet.js")
+  Tweet: sequlize.import('./Tweet.js')
 };
 
 Object.keys(models).forEach(modelName => {
@@ -21,8 +22,10 @@ Object.keys(models).forEach(modelName => {
 // CONNECT TO DB:
 sequlize
   .authenticate()
-  .then(() => console.log("DB CONNECTED"))
-  .catch(err => console.log("ERR: ", err));
+  .then(() => {
+    logger('DB CONNECTED');
+  })
+  .catch(err => logger('ERR: ', err));
 
 // EXPORTS
 models.sequlize = sequlize;
