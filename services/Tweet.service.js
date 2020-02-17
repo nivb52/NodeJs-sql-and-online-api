@@ -16,15 +16,16 @@ const tweetQ = createQueue();
 const isDequeueRunning = (state = true) => state;
 // let testQ = true; // for test the queue
 _handleQueue();
+_loadPendingToQueue();
 
 // Queue / Reducer TYPES :
 const POST_TWEET = 'postTweet';
 
- // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
- // ==========================
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ==========================
 // TWEET FUNCTIONS / METHODS :
 // ==========================
- // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 async function validation(tweet) {
   tweet.isPending = 1; // default -> true
   tweet.createdAt = Date.now();
@@ -35,26 +36,25 @@ async function validation(tweet) {
 }
 
 async function postTweet({ comment, commentId }) {
-  bot.post('statuses/update', { comment }, (err, data, res) => {
+  bot.post('statuses/update', { status: comment }, (err, data, res) => {
     if (err) {
-      emitter.emit('error', err);
-      if (err.code === 187) return;
-
+      // start enqueue
       tweetQ.enqueue({ payload: { comment, commentId }, type: POST_TWEET });
-      // start dequeue-ing proccess if stoped
+      // restart dequeue-ing if proccess stoped
       if (!isDequeueRunning()) {
-        logger('\nisDequeuing On: ', isDequeueRunning());
         _handleQueue();
       }
+      logger('tweet NOT published', err);
       // testQ = false; //for test the queue
+      return err;
     } else {
+      logger('tweet published');
       // ON PUBLISH -> UPDATE :
-      updatePending(commentId);
+      _updatePending(commentId);
+      return;
     }
   });
 }
-
-
 
 const Tweet = {};
 Tweet.Model = Model;
@@ -67,28 +67,39 @@ module.exports = Tweet;
 // =======================
 // PRIVATE Fuctions / Methods
 // =======================
-
-async function _updatePending(tweetId) {
-  try {
-    const tweet = await Model.update(
-      { isPending: 0 },
-      {
-        where: {
-          id: tweetId
-        }
-      }
-    );
-  } catch (e) {
-    logger('error: ', e);
-    emitter.emit('error', err);
-  }
-  logger('==> ' + data.text + '\n tweeted');
-  return tweet;
+async function _loadPendingToQueue() {
+  let tweets;
+  Model.findAll({
+    where: { isPending: 1 }
+  })
+    .then(data => {
+      tweets = data.map(tweet => tweet.dataValues);
+      const pending = [];
+      tweets.map(tweet => {
+        let { comment, id } = tweet;
+        pending.push({ payload: { comment, commentId: id }, type: POST_TWEET });
+      });
+      pending.map(tweet => tweetQ.enqueue(tweet));
+    })
+    .catch(e => {
+      return;
+    });
 }
 
-// =======================
-// PRIVATE Fuctions / Methods
-// =======================
+async function _updatePending(tweetId) {
+  logger('==> ' + tweetId);
+  await Model.update({ isPending: 0 },{
+      where: {
+        id: tweetId
+      }
+    }).then(tweet => {
+      return;
+    })
+    .catch(e => {
+      logger('error: ', e);
+      emitter.emit('error', err);
+    });
+}
 
 function _handleQueue() {
   while (!tweetQ.isEmpty) {
