@@ -1,14 +1,44 @@
 const logger = require('../../services/logger');
+const Tweet = require('../../services/Tweet.service.js');
+const defaultError = 'Whoops! something went wrong';
+// express
 const express = require('express');
 const router = new express.Router();
-const Tweet = require('../../services/Tweet.service.js');
+const createError = require('http-errors');
+
 
 router.get('/', (req, res) => {
-  res.send('INDEX');
+  res.status(200).send('INDEX');
+});
+
+// PUBLISH TWEET //
+router.get('/t', async (req, res) => {
+  const { comment, author, tweet_account } = req.query;
+  const checkTweet = { comment, author, tweet_account };
+
+  const { value, error } = await Tweet.validation(checkTweet);
+
+  if (error) {
+    const msg = encodeURIComponent(error.message.substring(5));
+    res.status().redirect('/error?e=' + msg);
+    return;
+  }
+  let msg = 'SENT';
+  // INSERT TO TABLE
+  Tweet.Model.create(value)
+    .then(tweet => {
+      Tweet.post({ comment: tweet.dataValues.comment, commentId: tweet.id });
+    })
+    .catch(e => {
+      logger('error: ', e);
+      msg = 'posting problem, we will keep trying';
+    });
+  res.status(200).send(msg);
+  return;
 });
 
 router.get('/all', (req, res) => {
-  const data = Tweet.Model.findAll({ offset: 0, limit: 15 })
+  const data = Tweet.Model.findAll({ offset: 0, limit: 25 })
     .then(tweet => {
       data = JSON.stringify(data);
       res.setHeader('Content-Type', 'application/json');
@@ -45,42 +75,17 @@ router.get('/published', async (req, res) => {
     .catch(e => logger('Error:', e));
 });
 
-
-// PUBLISH TWEET //
-router.get('/t', async (req, res) => {
-  let { comment, author, tweet_account } = req.query;
-  const tweet = Tweet.validation({ comment, author, tweet_account });
-
-  // INSERT TO TABLE
-  Tweet.Model.create(tweet)
-    .then(tweet => {
-      try {
-        Tweet.post({ comment: tweet.dataValues.comment, commentId: tweet.id });
-        return res.status(200, 'SENT');
-      } catch (e) {
-        next('error');
-      }
-    })
-    .catch(e => {
-      // logger('==== ERROR: ====', e);
-      next('error');
-    });
-  });
-
-  Tweet.emitter.on('error', err => {
-    const defaultError = 'Whoops! something went wrong';
-    if (!err || !err.code) {
-      return res.redirect(
-        '/error/?e=' + encodeURIComponent('Check your connection')
-      );
-    } else if (err.code === 187) {
-      // 187 = Status is a duplicate
-      return res.redirect('/error/?e=' + encodeURIComponent(err.message));
-    } else {
-      return res.redirect('/error?e=' + encodeURIComponent(defaultError));
-    }
-    return res.end();
-  });
+Tweet.emitter.on('error', err => {
+  if (!err || !err.code) {
+    createError(('Check your connection'));
+  } else if (err.code === 187) {
+    // 187 => msg:  Status is a duplicate
+    createError(err.message);
+  } else {
+    createError(defaultError);
+  }
+}
+);
 
 router.get('/thanks', (req, res) => {
   res.send('Thanks');
