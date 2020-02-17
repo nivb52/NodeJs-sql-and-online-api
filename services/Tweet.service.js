@@ -1,4 +1,5 @@
-const logger = (...txt) => console.log(...txt);
+const logger = require('../services/logger')
+
 const bot = require('./tweetBot');
 const { createQueue } = require('./queue.js');
 const schema = require('./tweet.validetor');
@@ -18,21 +19,20 @@ _handleQueue();
 
 // TWEET FUNCTIONS / METHODS :
 // ==========================
-function saveAndPublish(tweet) {
+async function saveAndPublish(tweet) {
+  tweet.isPending = 1; // default -> true
   tweet.createdAt = Date.now();
-  
+
   const { error, value } = schema.validate(tweet);
-  if (error) return emitter.emit('error', error); 
+  if (error) return emitter.emit('error', error);
 
   logger('value', value);
-  
-  return emitter.emit('success');
+
   // INSERT TO TABLE
   TweetModel.create(value)
     .then(tweet => {
       try {
-        toPublish(tweet.dataValues.comment);
-        emitter.emit('success');
+        toPublish({status: tweet.dataValues.comment, statusId: tweet.id});
       } catch (e) {
         emitter.emit('error');
       }
@@ -41,24 +41,31 @@ function saveAndPublish(tweet) {
       // logger('==== ERROR: ====', e);
       emitter.emit('error');
     });
-    emitter.emit('success');
+  emitter.emit('success');
 }
 
-function toPublish(status) {
-  bot.post('statuses/update', { status }, function(err, data, res) {
+async function toPublish({status, statusId}, onError, onCompleted) {
+  bot.post('statuses/update', { status }, (err, data, res) => {
     if (err) {
-      if (err.code === 187) {
-        emitter.emit('error', err);
-        return;
-      }
+      emitter.emit('error', err);
+      if (err.code === 187) return 
+      
+      tweetQ.enqueue({payload: {status, statusId} , type: 'toPublish' });
+      // make dequeue-ing proccess run if stoped
       if (!isDequeueRunning()) {
         logger('\nisDequeuing On: ', isDequeueRunning());
-        // make dequeue-ing proccess run if stoped
         _handleQueue();
       }
-      tweetQ.enqueue({ status, type: 'toPublish' });
       // testQ = false; //for test the queue
     } else {
+      // ON PUBLISH -> UPDATE :
+      TweetModel.update({
+        isPending: 0
+      }, {
+        where: {
+          id : statusId
+        }
+      })
       logger('==> ', data.text, '\n tweeted');
     }
   });
