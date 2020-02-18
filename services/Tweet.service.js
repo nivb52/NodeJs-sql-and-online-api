@@ -15,8 +15,8 @@ const emitter = new EventEmitter();
 const tweetQ = createQueue();
 const isDequeueRunning = (state = true) => state;
 // let testQ = true; // for test the queue
-_handleQueue();
 _loadPendingToQueue();
+_handleQueue();
 
 // Queue / Reducer TYPES :
 const POST_TWEET = 'postTweet';
@@ -68,6 +68,7 @@ module.exports = Tweet;
 // PRIVATE Fuctions / Methods
 // =======================
 async function _loadPendingToQueue() {
+  logger('Loading Pending Tweets...')
   let tweets;
   Model.findAll({
     where: { isPending: 1 }
@@ -80,6 +81,8 @@ async function _loadPendingToQueue() {
         pending.push({ payload: { comment, commentId: id }, type: POST_TWEET });
       });
       pending.map(tweet => tweetQ.enqueue(tweet));
+      logger('tweets load, current tweet: ' , tweetQ.peek())
+
     })
     .catch(e => {
       return;
@@ -104,12 +107,13 @@ async function _updatePending(tweetId) {
 function _handleQueue() {
   while (!tweetQ.isEmpty) {
     setTimeout(() => {
-      const { type, comment } = tweetQ.dequeue();
+      logger('\n dequeueing ... ')
+      const { type, payload } = tweetQ.dequeue();
       const action = {};
       action.type = type;
-      action.payload = comment;
+      action.payload = payload;
       _reducer(action);
-    }, 1000);
+    }, 60*1000);
   }
   isDequeueRunning(false);
 }
