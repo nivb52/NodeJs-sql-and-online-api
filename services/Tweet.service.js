@@ -15,8 +15,10 @@ const emitter = new EventEmitter();
 const tweetQ = createQueue();
 const isDequeueRunning = (state = true) => state;
 // let testQ = true; // for test the queue
-_loadPendingToQueue();
-_handleQueue();
+setTimeout(() => {
+  // start after user choose is first action
+  _loadPendingToQueue();
+}, 5000);
 
 // Queue / Reducer TYPES :
 const POST_TWEET = 'postTweet';
@@ -42,7 +44,7 @@ async function postTweet({ comment, commentId }) {
       tweetQ.enqueue({ payload: { comment, commentId }, type: POST_TWEET });
       // restart dequeue-ing if proccess stoped
       if (!isDequeueRunning()) {
-        _handleQueue();
+        _handleQueueRecursion();
       }
       logger('tweet NOT published', err);
       // testQ = false; //for test the queue
@@ -68,7 +70,7 @@ module.exports = Tweet;
 // PRIVATE Fuctions / Methods
 // =======================
 async function _loadPendingToQueue() {
-  logger('Loading Pending Tweets...')
+  logger('Loading Pending Tweets...');
   let tweets;
   Model.findAll({
     where: { isPending: 1 }
@@ -81,8 +83,8 @@ async function _loadPendingToQueue() {
         pending.push({ payload: { comment, commentId: id }, type: POST_TWEET });
       });
       pending.map(tweet => tweetQ.enqueue(tweet));
-      logger('tweets load, current tweet: ' , tweetQ.peek())
-
+      logger('tweets load');
+      _handleQueueRecursion();
     })
     .catch(e => {
       return;
@@ -91,11 +93,15 @@ async function _loadPendingToQueue() {
 
 async function _updatePending(tweetId) {
   logger('==> ' + tweetId);
-  await Model.update({ isPending: 0 },{
+  await Model.update(
+    { isPending: 0 },
+    {
       where: {
         id: tweetId
       }
-    }).then(tweet => {
+    }
+  )
+    .then(tweet => {
       return;
     })
     .catch(e => {
@@ -104,18 +110,18 @@ async function _updatePending(tweetId) {
     });
 }
 
-function _handleQueue() {
-  while (!tweetQ.isEmpty) {
-    setTimeout(() => {
-      logger('\n dequeueing ... ')
-      const { type, payload } = tweetQ.dequeue();
-      const action = {};
-      action.type = type;
-      action.payload = payload;
-      _reducer(action);
-    }, 60*1000);
-  }
+function _handleQueueRecursion() {
   isDequeueRunning(false);
+  if (tweetQ.isEmpty()) return;
+  // start proccess
+  // logger('\n ==== \n --> current tweet: ', tweetQ.peek());
+  setTimeout(() => {
+    isDequeueRunning(true);
+    const action = tweetQ.dequeue();
+    logger('\n dequeueing ...  \n dequeue item: ', action);
+    _reducer(action);
+    _handleQueueRecursion();
+  }, 60 * 1000);
 }
 
 // Initiate funcion from queue :
