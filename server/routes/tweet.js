@@ -6,10 +6,6 @@ const express = require('express');
 const router = new express.Router();
 const createError = require('http-errors');
 
-router.get('/', (req, res) => {
-  res.status(200).send('INDEX');
-});
-
 // PUBLISH TWEET //
 router.post('/t', async (req, res) => {
   const { comment, author, tweet_account } = req.query;
@@ -35,7 +31,7 @@ router.post('/t', async (req, res) => {
         resStatus = tweet.code ? tweet.status : 200;
         res.status(resStatus).send(msg);
       }
-      res.redirect('/thanks')
+      res.redirect('/thanks');
     })
     .catch(e => {
       logger('error: ', e);
@@ -45,15 +41,19 @@ router.post('/t', async (req, res) => {
   return;
 });
 
-router.get('/all', (req, res) => {
-  const data = Tweet.Model.findAll({ offset: 0, limit: 25 })
-    .then(tweets => {
-      data = tweets.map(tweet => tweet.dataValues);
-      data = JSON.stringify(data);
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(200).send(data);
-    })
-    .catch(e => logger('Error:', e));
+router.get('/all', async (req, res) => {
+  try {
+    const tweets = await Tweet.Model.findAll({
+      offset: 0,
+      limit: 15
+    });
+    let data = tweets.map(tweet => tweet.dataValues);
+    data = JSON.stringify(data);
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).send(data);
+  } catch (e) {
+    return;
+  }
 });
 
 router.get('/pending', async (req, res) => {
@@ -84,6 +84,18 @@ router.get('/published', async (req, res) => {
     .catch(e => logger('Error:', e));
 });
 
+router.get('/', (req, res) => {
+  res.status(200).send('INDEX');
+});
+
+
+
+router.get('/thanks', (req, res) => {
+  res.status(200).send('Thanks');
+});
+
+
+// EMMITS
 Tweet.emitter.on('error', err => {
   if (!err || !err.code) {
     createError('Check your connection');
@@ -93,10 +105,6 @@ Tweet.emitter.on('error', err => {
   } else {
     createError(defaultError);
   }
-});
-
-router.get('/thanks', (req, res) => {
-  res.status(200).send('Thanks');
 });
 
 module.exports = router;
