@@ -47,7 +47,8 @@ router.post('/t', async (req, res) => {
 
 router.get('/all', (req, res) => {
   const data = Tweet.Model.findAll({ offset: 0, limit: 25 })
-    .then(tweet => {
+    .then(tweets => {
+      data = tweets.map(tweet => tweet.dataValues);
       data = JSON.stringify(data);
       res.setHeader('Content-Type', 'application/json');
       return res.status(200).send(data);
