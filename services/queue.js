@@ -26,8 +26,5 @@ function createQueue() {
       return queue.length === 0;
     },
 
-    len() {
-      return queue.length;
-    }
   };
 }
