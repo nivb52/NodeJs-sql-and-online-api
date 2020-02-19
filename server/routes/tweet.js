@@ -22,7 +22,7 @@ router.post('/t', async (req, res) => {
   let msg = 'SENT';
   let resStatus = 200;
   // INSERT TO TABLE
-  await Tweet.Model.create(value)
+  Tweet.Model.create(value)
     .then(tweet => {
       Tweet.post({ comment: tweet.dataValues.comment, commentId: tweet.id });
       // show Tweet.post error if there is
@@ -47,39 +47,37 @@ router.get('/all', async (req, res) => {
       offset: 0,
       limit: 15
     });
-    let data = tweets.map(tweet => tweet.dataValues);
+    const data = tweets.map(tweet => tweet.dataValues);
     data = JSON.stringify(data);
     res.setHeader('Content-Type', 'application/json');
-    res.status(200).send(data);
+    res.status(200).send(JSON.stringify(data));
   } catch (e) {
     return;
   }
 });
 
 router.get('/pending', async (req, res) => {
-  let data;
   Tweet.Model.findAll({
     where: { isPending: 1 }
   })
     .then(tweets => {
-      data = tweets.map(tweet => tweet.dataValues);
+      const data = tweets.map(tweet => tweet.dataValues);
       data = JSON.stringify(data);
       res.setHeader('Content-Type', 'application/json');
-      return res.status(200).send(data);
+      return res.status(200).send(JSON.stringify(data));
     })
     .catch(e => logger('Error:', e));
 });
 
 router.get('/published', async (req, res) => {
-  let data;
   Tweet.Model.findAll({
     where: { isPending: 0 }
   })
     .then(tweets => {
-      data = tweets.map(tweet => tweet.dataValues);
+      const data = tweets.map(tweet => tweet.dataValues);
       data = JSON.stringify(data);
       res.setHeader('Content-Type', 'application/json');
-      return res.status(200).send(data);
+      return res.status(200).send(JSON.stringify(data));
     })
     .catch(e => logger('Error:', e));
 });
