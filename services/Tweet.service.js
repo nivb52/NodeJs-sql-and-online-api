@@ -90,9 +90,9 @@ async function _loadPendingToQueue() {
     });
 }
 
-async function _updatePending(tweetId) {
+function _updatePending(tweetId) {
   logger('==> ' + tweetId);
-  await Model.update(
+  Model.update(
     { isPending: 0 },
     {
       where: {
@@ -100,7 +100,7 @@ async function _updatePending(tweetId) {
       }
     }
   )
-    .then(tweet => {
+    .then(() => {
       return;
     })
     .catch(e => {
