@@ -14,7 +14,7 @@ const emitter = new EventEmitter();
 // INIT Queue :
 const tweetQ = createQueue();
 const isDequeueRunning = (state = true) => state;
-// let testQ = true; // for test the queue
+
 setTimeout(() => {
   // start after user choose is first action
   _loadPendingToQueue();
@@ -47,7 +47,6 @@ async function postTweet({ comment, commentId }) {
         _handleQueueRecursion();
       }
       logger('tweet NOT published', err);
-      // testQ = false; //for test the queue
       return err;
     } else {
       logger('tweet published');
