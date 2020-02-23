@@ -24,10 +24,11 @@ router.post('/t', async (req, res) => {
   // INSERT TO TABLE
   Tweet.Model.create(value)
     .then(tweet => {
-      Tweet.post({ comment: tweet.dataValues.comment, commentId: tweet.id });
-      // show Tweet.post error if there is
-      if (tweet.status > 400 || tweet.code) {
-        msg = tweet.message;
+      const posted = await Tweet.post({ comment: tweet.dataValues.comment, commentId: tweet.id });
+      // error from DB come from tweet Obj, 
+      // posted.error come from Twitter
+      if (posted.error || tweet.status > 400 || tweet.code) {
+        msg = posted.error.title || tweet.message;
         resStatus = tweet.code ? tweet.status : 200;
         res.status(resStatus).send(msg);
       }

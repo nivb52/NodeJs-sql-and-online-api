@@ -47,7 +47,7 @@ async function postTweet({ comment, commentId }) {
         _handleQueueRecursion();
       }
       logger('tweet NOT published', err);
-      return err;
+      return {error: {err}};
     } else {
       logger('tweet published');
       // ON PUBLISH -> UPDATE :
